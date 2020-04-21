@@ -51,8 +51,8 @@ final class PodcastFeedTests: XCTestCase {
     }
 
     func testPodcastLanguage() {
-        let feed = PodcastFeed(.language("en-US"))
-        assertEqualPodcastFeedContent(feed, "<language>en-US</language>")
+        let feed = PodcastFeed(.language(.usEnglish))
+        assertEqualPodcastFeedContent(feed, "<language>en-us</language>")
     }
 
     func testPodcastTTL() {
@@ -167,13 +167,15 @@ final class PodcastFeedTests: XCTestCase {
     func testEpisodeDuration() {
         let feed = PodcastFeed(.item(
             .duration("00:15:12"),
-            .duration(hours: 00, minutes: 15, seconds: 12)
+            .duration(hours: 0, minutes: 15, seconds: 12),
+            .duration(hours: 1, minutes: 2, seconds: 3)
         ))
 
         assertEqualPodcastFeedContent(feed, """
         <item>\
         <itunes:duration>00:15:12</itunes:duration>\
         <itunes:duration>00:15:12</itunes:duration>\
+        <itunes:duration>01:02:03</itunes:duration>\
         </item>
         """)
     }

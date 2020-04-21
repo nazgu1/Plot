@@ -96,10 +96,9 @@ public extension Node where Context: HTMLValueContext {
 
 public extension Node where Context == HTML.DocumentContext {
     /// Specify the language of the HTML document's content.
-    /// - parameter languageCode: The language's code, for example `en`
-    ///   for English and `fr` for French.
-    static func lang(_ languageCode: String) -> Node {
-        .attribute(named: "lang", value: languageCode)
+    /// - parameter language: The language to specify.
+    static func lang(_ language: Language) -> Node {
+        .attribute(named: "lang", value: language.rawValue)
     }
 }
 
@@ -111,21 +110,39 @@ public extension Attribute where Context == HTML.LinkContext {
     static func rel(_ relationship: HTMLLinkRelationship) -> Attribute {
         Attribute(name: "rel", value: relationship.rawValue)
     }
+
+    /// Assign an `hreflang` attribute to this element.
+    /// - parameter language: The language to assign.
+    static func hreflang(_ language: Language) -> Attribute {
+        Attribute(name: "hreflang", value: language.rawValue)
+    }
+
+    /// Assign an icon sizes string to this element.
+    /// - parameter sizes: The icon sizes string to assign.
+    static func sizes(_ sizes: String) -> Attribute {
+        Attribute(name: "sizes", value: sizes)
+    }
+
+    /// Assign an icon color string to this element.
+    /// - parameter color: The icon color string to assign.
+    static func color(_ color: String) -> Attribute {
+        Attribute(name: "color", value: color)
+    }
 }
 
 public extension Attribute where Context: HTMLLinkableContext {
     /// Assign a URL to link the element to, using its `href` attribute.
     /// - parameter url: The URL to assign.
-    static func href(_ url: String) -> Attribute {
-        Attribute(name: "href", value: url)
+    static func href(_ url: URLRepresentable) -> Attribute {
+        Attribute(name: "href", value: url.string)
     }
 }
 
 public extension Node where Context: HTMLLinkableContext {
     /// Assign a URL to link the element to, using its `href` attribute.
     /// - parameter url: The URL to assign.
-    static func href(_ url: String) -> Node {
-        .attribute(named: "href", value: url)
+    static func href(_ url: URLRepresentable) -> Node {
+        .attribute(named: "href", value: url.string)
     }
 }
 
@@ -148,17 +165,17 @@ public extension Node where Context == HTML.AnchorContext {
 
 public extension Attribute where Context: HTMLSourceContext {
     /// Assign a source to the element, using its `src` attribute.
-    /// - parameter source: The source URL to assign.
-    static func src(_ source: String) -> Attribute {
-        Attribute(name: "src", value: source)
+    /// - parameter url: The source URL to assign.
+    static func src(_ url: URLRepresentable) -> Attribute {
+        Attribute(name: "src", value: url.string)
     }
 }
 
 public extension Node where Context: HTMLSourceContext {
     /// Assign a source to the element, using its `src` attribute.
-    /// - parameter source: The source URL to assign.
-    static func src(_ source: String) -> Node {
-        .attribute(named: "src", value: source)
+    /// - parameter url: The source URL to assign.
+    static func src(_ url: URLRepresentable) -> Node {
+        .attribute(named: "src", value: url.string)
     }
 }
 
@@ -186,13 +203,47 @@ public extension Attribute where Context == HTML.VideoSourceContext {
     }
 }
 
+public extension Attribute where Context == HTML.PictureSourceContext {
+    /// Assign a string describing a set of sources, using the `srcset` attribute.
+    /// - parameter set: The set of sources that this element should point to.
+    static func srcset(_ set: String) -> Attribute {
+        Attribute(name: "srcset", value: set)
+    }
+
+    /// Assign a media query that determines whether this source should be used.
+    /// - parameter query: The media query that the browser should evaluate.
+    static func media(_ query: String) -> Attribute {
+        Attribute(name: "media", value: query)
+    }
+}
+
 // MARK: - Forms, input and options
 
 public extension Node where Context == HTML.FormContext {
     /// Assign a URL that this form should be sent to when submitted.
     /// - parameter url: The action URL that the form should be sent to.
-    static func action(_ url: String) -> Node {
-        .attribute(named: "action", value: url)
+    static func action(_ url: URLRepresentable) -> Node {
+        .attribute(named: "action", value: url.string)
+    }
+    
+    /// Assign a specific content type to the form.
+    /// - Parameter type: The content type to assign.
+    static func enctype(_ type: HTMLFormContentType) -> Node {
+        .attribute(named: "enctype", value: type.rawValue)
+    }
+    
+    /// Assign a specific HTTP request method that the form should
+    /// be submitted using.
+    /// - Parameter method: The HTTP request method to use.
+    static func method(_ method: HTMLFormMethod) -> Node {
+        .attribute(named: "method", value: method.rawValue)
+    }
+    
+    /// Add the `novalidate` attribute to the form, which
+    /// disables any native browser validation on the form.
+    /// - parameter isOn: Whether validation should be disabled.
+    static func novalidate(_ isOn: Bool = true) -> Node {
+        isOn ? .attribute(named: "novalidate") : .empty
     }
 }
 
@@ -210,6 +261,12 @@ public extension Attribute where Context == HTML.InputContext {
     static func type(_ type: HTMLInputType) -> Attribute {
         Attribute(name: "type", value: type.rawValue)
     }
+    
+    /// Assigns a placeholder to the input field.
+    /// - parameter placeholder: The placeholder to assign.
+    static func placeholder(_ placeholder: String) -> Attribute {
+        Attribute(name: "placeholder", value: placeholder)
+    }
 
     /// Assign whether the element should have autocomplete turned on or off.
     /// - parameter isOn: Whether autocomplete should be turned on.
@@ -217,10 +274,42 @@ public extension Attribute where Context == HTML.InputContext {
         Attribute(name: "autocomplete", value: isOn ? "on" : "off")
     }
 
+    /// Assign whether the element is required before submitting the form.
+    /// - parameter isRequired: Whether the element is required.
+    static func required(_ isRequired: Bool) -> Attribute {
+        isRequired ? Attribute(name: "required", value: "true") : .empty
+    }
+    
     /// Assign whether the element should be autofocused when the page loads.
-    /// - parameter isOn: Whether autofocus should turned on.
+    /// - parameter isOn: Whether autofocus should be turned on.
     static func autofocus(_ isOn: Bool) -> Attribute {
         isOn ? Attribute(name: "autofocus", value: "true") : .empty
+    }
+}
+
+public extension Node where Context == HTML.TextAreaContext {
+    /// Specify the number of columns that the text area should contain.
+    /// - parameter columns: The number of columns to specify.
+    static func cols(_ columns: Int) -> Node {
+        .attribute(named: "cols", value: String(columns))
+    }
+
+    /// Specify the number of text rows that should be visible within the text area.
+    /// - parameter rows: The number of rows to specify.
+    static func rows(_ rows: Int) -> Node {
+        .attribute(named: "rows", value: String(rows))
+    }
+    
+    /// Assign whether the element is required before submitting the form.
+    /// - parameter isRequired: Whether the element is required.
+    static func required(_ isRequired: Bool) -> Node {
+        isRequired ? .attribute(named: "required", value: "true") : .empty
+    }
+    
+    /// Assign whether the element should be autofocused when the page loads.
+    /// - parameter isOn: Whether autofocus should be turned on.
+    static func autofocus(_ isOn: Bool) -> Node {
+        isOn ? .attribute(named: "autofocus", value: "true") : .empty
     }
 }
 
@@ -319,6 +408,59 @@ public extension Node where Context: HTML.BodyContext {
     /// - parameter label: The label to assign.
     static func ariaLabel(_ label: String) -> Node {
         .attribute(named: "aria-label", value: label)
+    }
+    
+    /// Assign an accessibility attribute to an element,
+    /// to establish a parent -> child relationship
+    /// - parameter child: The child to assign to the parent
+    static func ariaControls(_ child: String) -> Node {
+        .attribute(named: "aria-controls", value: child)
+    }
+    
+    /// Assign an accessibility attribute to an element,
+    /// which describes whether the element is expanded or not
+    /// - parameter isExpanded: Whether the element is expanded or not
+    static func ariaExpanded(_ isExpanded: Bool) -> Node {
+        .attribute(named: "aria-expanded", value: isExpanded ? "true" : "false")
+    }
+    
+    /// Assign an accessibility attribute to an element,
+    /// which removes an element from the accessibility tree
+    /// - parameter isHidden: Whether the element is hidden or not
+    static func ariaHidden(_ isHidden: Bool) -> Node {
+        .attribute(named: "aria-hidden", value: isHidden ? "true" : "false")
+    }
+}
+
+// MARK: - Subresource Integrity
+
+public extension Attribute where Context: HTMLIntegrityContext {
+    /// Assign a subresouce integrity hash to the element, using its `integrity` attribute.
+    /// - parameter hash: base64-encoded cryptographic hash
+    static func integrity(_ hash: String) -> Attribute {
+        Attribute(name: "integrity", value: hash)
+    }
+}
+
+public extension Node where Context: HTMLIntegrityContext {
+    /// Assign a subresouce integrity hash to the element, using its `integrity` attribute.
+    /// - parameter hash: base64-encoded cryptographic hash
+    static func integrity(_ hash: String) -> Node {
+        .attribute(named: "integrity", value: hash)
+    }
+}
+
+// MARK: - Scripts
+
+public extension Node where Context == HTML.ScriptContext {
+    /// Assign that the element's script should be loaded in `async` mode.
+    static func async() -> Node {
+        .attribute(named: "async", value: nil, ignoreIfValueIsEmpty: false)
+    }
+    
+    /// Assign that the element's script should be loaded in `defer` mode.
+    static func `defer`() -> Node {
+        .attribute(named: "defer", value: nil, ignoreIfValueIsEmpty: false)
     }
 }
 

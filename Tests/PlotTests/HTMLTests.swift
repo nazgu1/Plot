@@ -13,7 +13,7 @@ final class HTMLTests: XCTestCase {
     }
 
     func testPageLanguage() {
-        let html = HTML(.lang("en"))
+        let html = HTML(.lang(.english))
         XCTAssertEqual(html.render(), #"<!DOCTYPE html><html lang="en"></html>"#)
     }
 
@@ -128,6 +128,53 @@ final class HTMLTests: XCTestCase {
         """)
     }
 
+    func testLinkWithHrefLang() {
+        let html = HTML(.head(.link(
+            .rel(.alternate),
+            .href("http://site/"),
+            .hreflang(.english)
+        )))
+
+        assertEqualHTMLContent(html, """
+        <head><link rel="alternate" href="http://site/" hreflang="en"/></head>
+        """)
+    }
+
+    func testAppleTouchIconLink() {
+        let html = HTML(.head(.link(
+            .rel(.appleTouchIcon),
+            .sizes("180x180"),
+            .href("apple-touch-icon.png")
+        )))
+
+        assertEqualHTMLContent(html, """
+        <head><link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png"/></head>
+        """)
+    }
+
+    func testManifestLink() {
+        let html = HTML(.head(.link(
+            .rel(.manifest),
+            .href("site.webmanifest")
+        )))
+
+        assertEqualHTMLContent(html, """
+        <head><link rel="manifest" href="site.webmanifest"/></head>
+        """)
+    }
+
+    func testMaskIconLink() {
+        let html = HTML(.head(.link(
+            .rel(.maskIcon),
+            .href("safari-pinned-tab.svg"),
+            .color("#000000")
+        )))
+
+        assertEqualHTMLContent(html, """
+        <head><link rel="mask-icon" href="safari-pinned-tab.svg" color="#000000"/></head>
+        """)
+    }
+
     func testBodyWithID() {
         let html = HTML(.body(.id("anID")))
         assertEqualHTMLContent(html, #"<body id="anID"></body>"#)
@@ -164,16 +211,18 @@ final class HTMLTests: XCTestCase {
         """)
     }
 
-    func testAnchors() {
-        let html = HTML(.body(
+    func testAnchors() throws {
+        let html = try HTML(.body(
             .a(.href("a.html"), .target(.blank), .text("A")),
-            .a(.href("b.html"), .rel(.nofollow), .text("B"))
+            .a(.href("b.html"), .rel(.nofollow), .text("B")),
+            .a(.href(require(URL(string: "c.html"))), .text("C"))
         ))
 
         assertEqualHTMLContent(html, """
         <body>\
         <a href="a.html" target="_blank">A</a>\
         <a href="b.html" rel="nofollow">B</a>\
+        <a href="c.html">C</a>\
         </body>
         """)
     }
@@ -182,12 +231,17 @@ final class HTMLTests: XCTestCase {
         let html = HTML(.body(
             .table(
                 .caption("Caption"),
-                .tr(.td("Hello"))
+                .tr(.th("Hello")),
+                .tr(.td("World"))
             )
         ))
 
         assertEqualHTMLContent(html, """
-        <body><table><caption>Caption</caption><tr><td>Hello</td></tr></table></body>
+        <body><table>\
+        <caption>Caption</caption>\
+        <tr><th>Hello</th></tr>\
+        <tr><td>World</td></tr>\
+        </table></body>
         """)
     }
 
@@ -224,7 +278,9 @@ final class HTMLTests: XCTestCase {
                 ),
                 .input(.name("b"), .type(.search), .autocomplete(false), .autofocus(true)),
                 .input(.name("c"), .type(.text), .autofocus(false)),
-                .input(.name("d"), .type(.email), .autocomplete(true)),
+                .input(.name("d"), .type(.email), .placeholder("email address"), .autocomplete(true), .required(true)),
+                .textarea(.name("e"), .cols(50), .rows(10), .required(true), .text("Test")),
+                .textarea(.name("f"), .autofocus(true)),
                 .input(.type(.submit), .value("Send"))
             )
         ))
@@ -237,12 +293,56 @@ final class HTMLTests: XCTestCase {
         </fieldset>\
         <input name="b" type="search" autocomplete="off" autofocus="true"/>\
         <input name="c" type="text"/>\
-        <input name="d" type="email" autocomplete="on"/>\
+        <input name="d" type="email" placeholder="email address" autocomplete="on" required="true"/>\
+        <textarea name="e" cols="50" rows="10" required="true">Test</textarea>\
+        <textarea name="f" autofocus="true"></textarea>\
         <input type="submit" value="Send"/>\
         </form></body>
         """)
     }
+    
+    func testFormContentType() {
+        let html = HTML(.body(
+            .form(.enctype(.urlEncoded)),
+            .form(.enctype(.multipartData)),
+            .form(.enctype(.plainText))
+        ))
+        
+        assertEqualHTMLContent(html, """
+        <body>\
+        <form enctype="application/x-www-form-urlencoded"></form>\
+        <form enctype="multipart/form-data"></form>\
+        <form enctype="text/plain"></form>\
+        </body>
+        """)
+    }
+    
+    func testFormMethod() {
+        let html = HTML(.body(
+            .form(.method(.get)),
+            .form(.method(.post))
+        ))
 
+        assertEqualHTMLContent(html, """
+        <body>\
+        <form method="get"></form>\
+        <form method="post"></form>\
+        </body>
+        """)
+    }
+    
+    func testFormNoValidate() {
+        let html = HTML(.body(
+            .form(.novalidate())
+        ))
+        
+        assertEqualHTMLContent(html, """
+        <body>\
+        <form novalidate></form>\
+        </body>
+        """)
+    }
+    
     func testHeadings() {
         let html = HTML(.body(
             .h1("One"),
@@ -394,12 +494,18 @@ final class HTMLTests: XCTestCase {
 
     func testJavaScript() {
         let html = HTML(
-            .head(.script(.src("file.js"))),
+            .head(
+                .script(.src("script.js")),
+                .script(.async(), .src("async.js")),
+                .script(.defer(), .src("deferred.js"))
+            ),
             .body(.script(#"console.log("Consider going JS-free :)")"#))
         )
 
         assertEqualHTMLContent(html, """
-        <head><script src="file.js"></script></head>\
+        <head><script src="script.js"></script>\
+        <script async src="async.js"></script>\
+        <script defer src="deferred.js"></script></head>\
         <body><script>console.log("Consider going JS-free :)")</script></body>
         """)
     }
@@ -469,6 +575,11 @@ final class HTMLTests: XCTestCase {
         assertEqualHTMLContent(html, "<body>One<hr/>Two</body>")
     }
 
+    func testNoScript() {
+        let html = HTML(.body(.noscript("NoScript")))
+        assertEqualHTMLContent(html, "<body><noscript>NoScript</noscript></body>")
+    }
+
     func testNavigation() {
         let html = HTML(.body(.nav("Navigation")))
         assertEqualHTMLContent(html, "<body><nav>Navigation</nav></body>")
@@ -479,9 +590,33 @@ final class HTMLTests: XCTestCase {
         assertEqualHTMLContent(html, "<body><section>Section</section></body>")
     }
 
+    func testMain() {
+        let html = HTML(.body(.main("Main")))
+        assertEqualHTMLContent(html, "<body><main>Main</main></body>")
+    }
+
     func testAccessibilityLabel() {
         let html = HTML(.body(.button(.text("X"), .ariaLabel("Close"))))
         assertEqualHTMLContent(html, #"<body><button aria-label="Close">X</button></body>"#)
+    }
+    
+    func testAccessibilityControls() {
+        let html = HTML(.body(.ul(.li(.id("list"), .ariaControls("div"))), .div(.id("div"))))
+        assertEqualHTMLContent(html, """
+        <body>\
+        <ul><li id="list" aria-controls="div"></li></ul><div id="div"></div>\
+        </body>
+        """)
+    }
+    
+    func testAccessibilityExpanded() {
+        let html = HTML(.body(.a(.ariaExpanded(true))))
+        assertEqualHTMLContent(html, #"<body><a aria-expanded="true"></a></body>"#)
+    }
+    
+    func testAccessibilityHidden() {
+        let html = HTML(.body(.a(.ariaHidden(true))))
+        assertEqualHTMLContent(html, #"<body><a aria-hidden="true"></a></body>"#)
     }
 
     func testDataAttributes() {
@@ -494,10 +629,42 @@ final class HTMLTests: XCTestCase {
         <body data-user-name="John"><img data-icon="User"/></body>
         """)
     }
+    
+    func testSubresourceIntegrity() {
+        let html = HTML(.head(
+            .script(.src("file.js"), .integrity("sha384-fakeHash")),
+            .link(.rel(.stylesheet), .href("styles.css"), .type("text/css"), .integrity("sha512-fakeHash")),
+            .stylesheet("styles2.css", integrity: "sha256-fakeHash")
+        ))
+
+        assertEqualHTMLContent(html, """
+        <head><script src="file.js" integrity="sha384-fakeHash"></script>\
+        <link rel="stylesheet" href="styles.css" type="text/css" integrity="sha512-fakeHash"/>\
+        <link rel="stylesheet" href="styles2.css" type="text/css" integrity="sha256-fakeHash"/>\
+        </head>
+        """)
+    }
 
     func testComments() {
         let html = HTML(.comment("Hello"), .body(.comment("World")))
         assertEqualHTMLContent(html, "<!--Hello--><body><!--World--></body>")
+    }
+
+    func testPicture() {
+        let html = HTML(.body(.picture(
+            .source(
+                .srcset("dark.jpg"),
+                .media("(prefers-color-scheme: dark)")
+            ),
+            .img(.src("default.jpg"))
+        )))
+
+        assertEqualHTMLContent(html, """
+        <body><picture>\
+        <source srcset="dark.jpg" media="(prefers-color-scheme: dark)"/>\
+        <img src="default.jpg"/>\
+        </picture></body>
+        """)
     }
 }
 
@@ -519,6 +686,10 @@ extension HTMLTests {
             ("testStaticViewport", testStaticViewport),
             ("testFavicon", testFavicon),
             ("testRSSFeedLink", testRSSFeedLink),
+            ("testLinkWithHrefLang", testLinkWithHrefLang),
+            ("testAppleTouchIconLink", testAppleTouchIconLink),
+            ("testManifestLink", testManifestLink),
+            ("testMaskIconLink", testMaskIconLink),
             ("testBodyWithID", testBodyWithID),
             ("testBodyWithCSSClass", testBodyWithCSSClass),
             ("testOverridingBodyCSSClass", testOverridingBodyCSSClass),
@@ -530,6 +701,9 @@ extension HTMLTests {
             ("testData", testData),
             ("testEmbeddedObject", testEmbeddedObject),
             ("testForm", testForm),
+            ("testFormContentType", testFormContentType),
+            ("testFormMethod", testFormMethod),
+            ("testFormNoValidate", testFormNoValidate),
             ("testHeadings", testHeadings),
             ("testParagraph", testParagraph),
             ("testImage", testImage),
@@ -547,11 +721,18 @@ extension HTMLTests {
             ("testDetails", testDetails),
             ("testLineBreak", testLineBreak),
             ("testHorizontalLine", testHorizontalLine),
+            ("testNoScript", testNoScript),
             ("testNavigation", testNavigation),
             ("testSection", testSection),
+            ("testMain", testMain),
             ("testAccessibilityLabel", testAccessibilityLabel),
+            ("testAccessibilityControls", testAccessibilityControls),
+            ("testAccessibilityExpanded", testAccessibilityExpanded),
+            ("testAccessibilityHidden", testAccessibilityHidden),
             ("testDataAttributes", testDataAttributes),
-            ("testComments", testComments)
+            ("testSubresourceIntegrity", testSubresourceIntegrity),
+            ("testComments", testComments),
+            ("testPicture", testPicture)
         ]
     }
 }

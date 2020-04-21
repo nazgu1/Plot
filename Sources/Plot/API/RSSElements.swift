@@ -34,10 +34,9 @@ public extension Node where Context: RSSChannelContext {
     }
 
     /// Define the channel's primary language.
-    /// - parameter languageCode: The code of the language, for example `en-US`
-    ///   for American English, or `pl-PL` for Polish.
-    static func language(_ languageCode: String) -> Node {
-        .element(named: "language", text: languageCode)
+    /// - parameter language: The channel's primary language.
+    static func language(_ language: Language) -> Node {
+        .element(named: "language", text: language.rawValue)
     }
 
     /// Declare when the feed was last built/generated.
@@ -60,9 +59,9 @@ public extension Node where Context: RSSChannelContext {
     /// Associate an Atom feed link with this feed.
     /// - parameter href: The link of the atom feed (usually the same URL as
     ///   the feed's own).
-    static func atomLink(_ href: String) -> Node {
+    static func atomLink(_ href: URLRepresentable) -> Node {
         .selfClosedElement(named: "atom:link", attributes: [
-            .any(name: "href", value: href),
+            .any(name: "href", value: href.string),
             .any(name: "rel", value: "self"),
             .any(name: "type", value: "application/rss+xml")
         ])
@@ -118,8 +117,8 @@ public extension Node where Context: RSSContentContext {
 
     /// Define the content's canonical URL.
     /// - parameter url: The content's URL.
-    static func link(_ url: String) -> Node {
-        .element(named: "link", text: url)
+    static func link(_ url: URLRepresentable) -> Node {
+        .element(named: "link", text: url.string)
     }
 
     /// Declare which date that the content was published on.
